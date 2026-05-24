@@ -10,10 +10,7 @@ from PIL import Image
 import pytesseract
 from sentence_transformers import SentenceTransformer
 
-
-# =========================
-# DATEIPFADE
-# =========================
+# Source data
 PRODUCTS_CSV = Path("products_cleaned.csv")
 INGREDIENTS_JSON = Path("paulas_choice_ingredients.json")
 
@@ -28,15 +25,10 @@ ROUTINE_IMAGE_PATHS = [
     INSTA_DIR / "2023-07-30_09-15-37_UTC_7.jpg",
 ]
 
-# Alternative: automatisch alle Bilder laden
-# ROUTINE_IMAGE_PATHS = sorted(list(INSTA_DIR.glob("*.jpg")) + list(INSTA_DIR.glob("*.jpeg")))
 
 EMBED_MODEL = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
 
 
-# =========================
-# TEXT HELPERS
-# =========================
 def clean_text(text):
     if pd.isna(text):
         return ""
@@ -55,10 +47,7 @@ def shorten(text, max_len=220):
         return text
     return text[:max_len].rstrip() + " ..."
 
-
-# =========================
-# CSV LOADER
-# =========================
+# csv loader
 def load_products(csv_path: Path):
     df = pd.read_csv(csv_path)
 
@@ -102,9 +91,7 @@ def load_products(csv_path: Path):
     return df, docs
 
 
-# =========================
-# JSON LOADER
-# =========================
+# json loader
 def load_ingredient_knowledge(json_path: Path):
     with open(json_path, "r", encoding="utf-8") as f:
         data = json.load(f)
@@ -131,9 +118,7 @@ def load_ingredient_knowledge(json_path: Path):
     return docs
 
 
-# =========================
-# OCR FÜR JPGs
-# =========================
+# OCR for jpg
 def ocr_image(image_path: Path, lang: str = "deu+eng"):
     image = Image.open(image_path)
     text = pytesseract.image_to_string(image, lang=lang)
@@ -172,9 +157,7 @@ def load_routine_images(image_paths):
     return docs, missing_files, failed_files
 
 
-# =========================
-# INDEX
-# =========================
+# index
 def build_index(docs, model):
     if not docs:
         return None
@@ -204,9 +187,7 @@ def semantic_search(query, docs, index, model, top_k=5):
     return results
 
 
-# =========================
-# HAUTPROFIL
-# =========================
+# skin profile
 def extract_skin_profile(user_text: str):
     t = normalize(user_text)
 
@@ -243,9 +224,7 @@ def extract_skin_profile(user_text: str):
     }
 
 
-# =========================
-# PRODUKTLOGIK
-# =========================
+# product logic
 def detect_product_type(text: str):
     t = normalize(text)
 
@@ -262,7 +241,7 @@ def detect_product_type(text: str):
             return product_type
     return "other"
 
-
+# ingredients
 def ingredient_flags(ingredients_text: str):
     t = normalize(ingredients_text)
     return {
@@ -333,9 +312,7 @@ def rerank_products(product_hits, profile, max_items=6):
     return rescored[:max_items]
 
 
-# =========================
-# ANTWORT
-# =========================
+# answer
 def build_answer(profile, ingredient_hits, routine_hits, product_hits):
     concerns = ", ".join(profile["concerns"]) if profile["concerns"] else "keine klar erkannten Anliegen"
     skin_types = ", ".join(profile["skin_types"]) if profile["skin_types"] else "kein klar erkannter Hauttyp"
@@ -374,9 +351,6 @@ def build_answer(profile, ingredient_hits, routine_hits, product_hits):
     return "\n".join(lines)
 
 
-# =========================
-# PREP
-# =========================
 @st.cache_resource
 def prepare_system():
     model = SentenceTransformer(EMBED_MODEL)
@@ -403,11 +377,9 @@ def prepare_system():
     }
 
 
-# =========================
 # UI
-# =========================
-st.set_page_config(page_title="Skincare RAG Chatbot", page_icon="🧴", layout="wide")
-st.title("🧴 Skincare RAG Chatbot")
+st.set_page_config(page_title="Skincare RAG Chatbot", layout="wide")
+st.title("Skincare RAG Chatbot")
 st.caption("RAG über CSV + JSON + OCR aus Routinebildern")
 
 system = prepare_system()
